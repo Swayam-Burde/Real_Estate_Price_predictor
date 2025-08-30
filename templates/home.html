@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ames Housing Price Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tom Select CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden; /* Prevent horizontal scrollbars during animations */
+        }
+        
+        .form-step {
+            display: none;
+            min-height: 400px; /* Ensure consistent height between steps */
+        }
+        .form-step-active {
+            display: block;
+        }
+
+        /* Slide Animations */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutLeft {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(-100%); opacity: 0; }
+        }
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .slide-in-right { animation: slideInRight 0.5s forwards; }
+        .slide-out-left { animation: slideOutLeft 0.5s forwards; }
+        .slide-in-left { animation: slideInLeft 0.5s forwards; }
+        .slide-out-right { animation: slideOutRight 0.5s forwards; }
+
+        .progress-bar-fill {
+            transition: width 0.4s ease-in-out;
+        }
+
+        /* Custom Tom Select Styles */
+        .ts-control {
+            border-radius: 0.375rem !important;
+            border-color: #d1d5db !important; /* gray-300 */
+            background-color: #fff7ed !important; /* orange-50 */
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+        .ts-control:focus-within {
+             border-color: #4f46e5 !important;
+             box-shadow: 0 0 0 1px #4f46e5 !important;
+        }
+        .ts-dropdown .active {
+            background-color: #4f46e5 !important;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-slate-900">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
+
+        <header class="text-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">Real Estate Price Predictor</h1>
+            <p class="text-lg text-slate-700 mt-2">Get an AI-powered valuation for properties in Ames, Iowa.</p>
+        </header>
+
+        <main class="bg-orange-50 p-6 sm:p-10 rounded-2xl shadow-2xl border border-orange-200">
+            
+            <div class="text-center mb-8 bg-orange-100 p-6 rounded-xl shadow-inner border border-orange-200">
+                <h2 class="text-xl font-semibold text-slate-800">Estimated Property Value</h2>
+                <p id="predictionResult" class="text-5xl font-bold text-indigo-700 mt-2 tracking-tight">
+                    {% if results %}
+                        ${{ "{:,.0f}".format(results) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="w-full bg-orange-200 rounded-full h-2.5 mb-8">
+                <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full progress-bar-fill" style="width: 14.28%"></div>
+            </div>
+            
+            <form id="prediction-form" action="/predict" method="post">
+                <div class="relative overflow-hidden">
+                    <!-- Step 1: Location & Lot Details -->
+                    <div id="step-1" class="form-step form-step-active">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-map-marked-alt mr-3 text-sky-500"></i>Location & Lot Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- All fields for step 1 -->
+                            <div>
+                                <label for="MS_Zoning" class="block text-sm font-medium text-slate-700 mb-1">Zoning Classification</label>
+                                <select name="MS_Zoning" id="MS_Zoning" required>
+                                    <option value="A (agr)">Agriculture</option><option value="C (all)">Commercial</option><option value="FV">Floating Village</option><option value="I (all)">Industrial</option><option value="RH">Residential High</option><option value="RL" selected>Residential Low</option><option value="RM">Residential Medium</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="Lot_Frontage" class="block text-sm font-medium text-slate-700 mb-1">Lot Frontage (ft)</label>
+                                <input type="number" name="Lot_Frontage" placeholder="e.g., 80" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Lot_Area" class="block text-sm font-medium text-slate-700 mb-1">Lot Area (sq ft)</label>
+                                <input type="number" name="Lot_Area" placeholder="e.g., 9600" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                             <div>
+                                <label for="Street" class="block text-sm font-medium text-slate-700 mb-1">Street Access</label>
+                                <select name="Street" id="Street" required><option value="Pave">Paved</option><option value="Grvl">Gravel</option></select>
+                            </div>
+                            <div>
+                                <label for="Alley" class="block text-sm font-medium text-slate-700 mb-1">Alley Access</label>
+                                <select name="Alley" id="Alley"><option value="NA">No Alley</option><option value="Pave">Paved</option><option value="Grvl">Gravel</option></select>
+                            </div>
+                            <div>
+                                <label for="Lot_Shape" class="block text-sm font-medium text-slate-700 mb-1">Lot Shape</label>
+                                <select name="Lot_Shape" id="Lot_Shape" required><option value="Reg">Regular</option><option value="IR1">Slightly Irregular</option><option value="IR2">Moderately Irregular</option><option value="IR3">Irregular</option></select>
+                            </div>
+                             <div>
+                                <label for="Land_Contour" class="block text-sm font-medium text-slate-700 mb-1">Land Contour</label>
+                                <select name="Land_Contour" id="Land_Contour" required><option value="Lvl">Level</option><option value="Bnk">Banked</option><option value="HLS">Hillside</option><option value="Low">Depression</option></select>
+                            </div>
+                            <div>
+                                <label for="Lot_Config" class="block text-sm font-medium text-slate-700 mb-1">Lot Configuration</label>
+                                <select name="Lot_Config" id="Lot_Config" required><option value="Inside">Inside</option><option value="Corner">Corner</option><option value="CulDSac">Cul-de-sac</option><option value="FR2">Frontage on 2 sides</option><option value="FR3">Frontage on 3 sides</option></select>
+                            </div>
+                            <div>
+                                <label for="Land_Slope" class="block text-sm font-medium text-slate-700 mb-1">Slope of Property</label>
+                                <select name="Land_Slope" id="Land_Slope" required><option value="Gtl">Gentle</option><option value="Mod">Moderate</option><option value="Sev">Severe</option></select>
+                            </div>
+                            <div>
+                                <label for="Neighborhood" class="block text-sm font-medium text-slate-700 mb-1">Neighborhood</label>
+                                <select name="Neighborhood" id="Neighborhood" required>
+                                    <option value="Blmngtn">Bloomington Heights</option><option value="Blueste">Bluestem</option><option value="BrDale">Briardale</option><option value="BrkSide">Brookside</option><option value="ClearCr">Clear Creek</option><option value="CollgCr">College Creek</option><option value="Crawfor">Crawford</option><option value="Edwards">Edwards</option><option value="Gilbert">Gilbert</option><option value="IDOTRR">IDOTRR</option><option value="MeadowV">Meadow Village</option><option value="Mitchel">Mitchell</option><option value="Names">North Ames</option><option value="NoRidge">Northridge</option><option value="NPkVill">Northpark Villa</option><option value="NridgHt">Northridge Heights</option><option value="NWAmes">Northwest Ames</option><option value="OldTown">Old Town</option><option value="SWISU">SW of ISU</option><option value="Sawyer">Sawyer</option><option value="SawyerW">Sawyer West</option><option value="Somerst">Somerset</option><option value="StoneBr">Stone Brook</option><option value="Timber">Timberland</option><option value="Veenker">Veenker</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Property & Building Details -->
+                    <div id="step-2" class="form-step">
+                         <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-building mr-3 text-emerald-500"></i>Property & Building Details</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- All fields for step 2 -->
+                            <div>
+                                <label for="MS_SubClass" class="block text-sm font-medium text-slate-700 mb-1">Building Class</label>
+                                <input type="number" name="MS_SubClass" placeholder="e.g., 60" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Overall_Qual" class="block text-sm font-medium text-slate-700 mb-1">Overall Quality (1-10)</label>
+                                <input type="number" name="Overall_Qual" min="1" max="10" placeholder="e.g., 7" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Overall_Cond" class="block text-sm font-medium text-slate-700 mb-1">Overall Condition (1-10)</label>
+                                <input type="number" name="Overall_Cond" min="1" max="10" placeholder="e.g., 5" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Year_Built" class="block text-sm font-medium text-slate-700 mb-1">Year Built</label>
+                                <select name="Year_Built" id="Year_Built" required></select>
+                            </div>
+                            <div>
+                                <label for="Year_RemodAdd" class="block text-sm font-medium text-slate-700 mb-1">Year Remodeled</label>
+                                <select name="Year_RemodAdd" id="Year_RemodAdd" required></select>
+                            </div>
+                            <div>
+                                <label for="Bldg_Type" class="block text-sm font-medium text-slate-700 mb-1">Building Type</label>
+                                <select name="Bldg_Type" id="Bldg_Type" required><option value="1Fam">Single-Family</option><option value="2fmCon">Two-Family Conversion</option><option value="Duplex">Duplex</option><option value="TwnhsE">Townhouse End Unit</option><option value="Twnhs">Townhouse Inside Unit</option></select>
+                            </div>
+                            <div>
+                                <label for="House_Style" class="block text-sm font-medium text-slate-700 mb-1">House Style</label>
+                                <select name="House_Style" id="House_Style" required><option value="1Story">1 Story</option><option value="1.5Fin">1.5 Story Finished</option><option value="1.5Unf">1.5 Story Unfinished</option><option value="2Story">2 Story</option><option value="2.5Fin">2.5 Story Finished</option><option value="2.5Unf">2.5 Story Unfinished</option><option value="SFoyer">Split Foyer</option><option value="SLvl">Split Level</option></select>
+                            </div>
+                            <div>
+                                <label for="Foundation" class="block text-sm font-medium text-slate-700 mb-1">Foundation</label>
+                                <select name="Foundation" id="Foundation" required><option value="PConc">Poured Concrete</option><option value="CBlock">Cinder Block</option><option value="BrkTil">Brick & Tile</option><option value="Wood">Wood</option><option value="Slab">Slab</option><option value="Stone">Stone</option></select>
+                            </div>
+                             <div>
+                                <label for="Mas_Vnr_Type" class="block text-sm font-medium text-slate-700 mb-1">Masonry Veneer Type</label>
+                                <select name="Mas_Vnr_Type" id="Mas_Vnr_Type"><option value="None">None</option><option value="BrkFace">Brick Face</option><option value="Stone">Stone</option><option value="BrkCmn">Brick Common</option></select>
+                            </div>
+                            <div>
+                                <label for="Mas_Vnr_Area" class="block text-sm font-medium text-slate-700 mb-1">Masonry Veneer Area</label>
+                                <input type="number" name="Mas_Vnr_Area" min="0" placeholder="e.g., 196" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Basement Details -->
+                    <div id="step-3" class="form-step">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-dungeon mr-3 text-yellow-500"></i>Basement Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- All fields for step 3 -->
+                            <div>
+                                <label for="Bsmt_Qual" class="block text-sm font-medium text-slate-700 mb-1">Basement Height</label>
+                                <select name="Bsmt_Qual" id="Bsmt_Qual"><option value="NA">No Basement</option><option value="Ex">Excellent (100+ in)</option><option value="Gd">Good (90-99 in)</option><option value="TA">Typical (80-89 in)</option><option value="Fa">Fair (70-79 in)</option><option value="Po">Poor (&lt;70 in)</option></select>
+                            </div>
+                            <div>
+                                <label for="Bsmt_Cond" class="block text-sm font-medium text-slate-700 mb-1">Basement Condition</label>
+                                <select name="Bsmt_Cond" id="Bsmt_Cond"><option value="NA">No Basement</option><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Typical</option><option value="Fa">Fair</option><option value="Po">Poor</option></select>
+                            </div>
+                            <div>
+                                <label for="Bsmt_Exposure" class="block text-sm font-medium text-slate-700 mb-1">Basement Exposure</label>
+                                <select name="Bsmt_Exposure" id="Bsmt_Exposure"><option value="NA">No Basement</option><option value="Gd">Good Exposure</option><option value="Av">Average Exposure</option><option value="Mn">Minimum Exposure</option><option value="No">No Exposure</option></select>
+                            </div>
+                            <div>
+                                <label for="BsmtFin_Type_1" class="block text-sm font-medium text-slate-700 mb-1">Finished Area 1 Type</label>
+                                <select name="BsmtFin_Type_1" id="BsmtFin_Type_1"><option value="NA">No Basement</option><option value="GLQ">Good Living Quarters</option><option value="ALQ">Average Living Quarters</option><option value="BLQ">Below Average</option><option value="Rec">Average Rec Room</option><option value="LwQ">Low Quality</option><option value="Unf">Unfinished</option></select>
+                            </div>
+                            <div>
+                                <label for="BsmtFin_SF_1" class="block text-sm font-medium text-slate-700 mb-1">Finished Area 1 (sq ft)</label>
+                                <input type="number" name="BsmtFin_SF_1" min="0" placeholder="e.g., 706" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="BsmtFin_Type_2" class="block text-sm font-medium text-slate-700 mb-1">Finished Area 2 Type</label>
+                                <select name="BsmtFin_Type_2" id="BsmtFin_Type_2"><option value="NA">No Basement</option><option value="GLQ">Good Living Quarters</option><option value="ALQ">Average Living Quarters</option><option value="BLQ">Below Average</option><option value="Rec">Average Rec Room</option><option value="LwQ">Low Quality</option><option value="Unf">Unfinished</option></select>
+                            </div>
+                            <div>
+                                <label for="BsmtFin_SF_2" class="block text-sm font-medium text-slate-700 mb-1">Finished Area 2 (sq ft)</label>
+                                <input type="number" name="BsmtFin_SF_2" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Bsmt_Unf_SF" class="block text-sm font-medium text-slate-700 mb-1">Unfinished Area (sq ft)</label>
+                                <input type="number" name="Bsmt_Unf_SF" min="0" placeholder="e.g., 150" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                               <label for="Total_Bsmt_SF" class="block text-sm font-medium text-slate-700 mb-1">Total Basement (sq ft)</label>
+                                <input type="number" name="Total_Bsmt_SF" min="0" placeholder="e.g., 856" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Interior Spaces -->
+                    <div id="step-4" class="form-step">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-door-open mr-3 text-violet-400"></i>Interior Spaces</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- All fields for step 4 -->
+                            <div>
+                                <label for="First_Flr_SF" class="block text-sm font-medium text-slate-700 mb-1">First Floor (sq ft)</label>
+                                <input type="number" name="First_Flr_SF" placeholder="e.g., 856" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Second_Flr_SF" class="block text-sm font-medium text-slate-700 mb-1">Second Floor (sq ft)</label>
+                                <input type="number" name="Second_Flr_SF" placeholder="e.g., 854" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Gr_Liv_Area" class="block text-sm font-medium text-slate-700 mb-1">Above Ground Living (sq ft)</label>
+                                <input type="number" name="Gr_Liv_Area" placeholder="e.g., 1710" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Bsmt_Full_Bath" class="block text-sm font-medium text-slate-700 mb-1">Basement Full Baths</label>
+                                <input type="number" name="Bsmt_Full_Bath" min="0" placeholder="e.g., 1" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Bsmt_Half_Bath" class="block text-sm font-medium text-slate-700 mb-1">Basement Half Baths</label>
+                                <input type="number" name="Bsmt_Half_Bath" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Full_Bath" class="block text-sm font-medium text-slate-700 mb-1">Full Bathrooms</label>
+                                <input type="number" name="Full_Bath" min="0" placeholder="e.g., 2" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Half_Bath" class="block text-sm font-medium text-slate-700 mb-1">Half Bathrooms</label>
+                                <input type="number" name="Half_Bath" min="0" placeholder="e.g., 1" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                               <label for="Bedroom_AbvGr" class="block text-sm font-medium text-slate-700 mb-1">Bedrooms Above Ground</label>
+                                <input type="number" name="Bedroom_AbvGr" min="0" placeholder="e.g., 3" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                               <label for="Kitchen_AbvGr" class="block text-sm font-medium text-slate-700 mb-1">Kitchens Above Ground</label>
+                                <input type="number" name="Kitchen_AbvGr" min="0" placeholder="e.g., 1" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Kitchen_Qual" class="block text-sm font-medium text-slate-700 mb-1">Kitchen Quality</label>
+                                <select name="Kitchen_Qual" id="Kitchen_Qual" required><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Typical/Average</option><option value="Fa">Fair</option><option value="Po">Poor</option></select>
+                            </div>
+                            <div>
+                                <label for="TotRms_AbvGrd" class="block text-sm font-medium text-slate-700 mb-1">Total Rooms Above Ground</label>
+                                <input type="number" name="TotRms_AbvGrd" min="0" placeholder="e.g., 8" required class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Fireplaces" class="block text-sm font-medium text-slate-700 mb-1">Fireplaces</label>
+                                <input type="number" name="Fireplaces" min="0" placeholder="e.g., 1" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Fireplace_Qu" class="block text-sm font-medium text-slate-700 mb-1">Fireplace Quality</label>
+                                <select name="Fireplace_Qu" id="Fireplace_Qu"><option value="NA">No Fireplace</option><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Average</option><option value="Fa">Fair</option><option value="Po">Poor</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Garage & Exterior Features -->
+                    <div id="step-5" class="form-step">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-warehouse mr-3 text-rose-500"></i>Garage & Exterior Features</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- All fields for step 5 -->
+                            <div>
+                                <label for="Garage_Type" class="block text-sm font-medium text-slate-700 mb-1">Garage Type</label>
+                                <select name="Garage_Type" id="Garage_Type"><option value="NA">No Garage</option><option value="2Types">More than one type</option><option value="Attchd">Attached</option><option value="Basment">Basement Garage</option><option value="BuiltIn">Built-In</option><option value="CarPort">Car Port</option><option value="Detchd">Detached</option></select>
+                            </div>
+                            <div>
+                                <label for="Garage_Yr_Blt" class="block text-sm font-medium text-slate-700 mb-1">Garage Year Built</label>
+                                <select name="Garage_Yr_Blt" id="Garage_Yr_Blt"></select>
+                            </div>
+                            <div>
+                                <label for="Garage_Finish" class="block text-sm font-medium text-slate-700 mb-1">Garage Finish</label>
+                                <select name="Garage_Finish" id="Garage_Finish"><option value="NA">No Garage</option><option value="Fin">Finished</option><option value="RFn">Rough Finished</option><option value="Unf">Unfinished</option></select>
+                            </div>
+                            <div>
+                               <label for="Garage_Cars" class="block text-sm font-medium text-slate-700 mb-1">Garage Capacity (Cars)</label>
+                                <input type="number" name="Garage_Cars" min="0" max="5" placeholder="e.g., 2" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                             <div>
+                                <label for="Garage_Area" class="block text-sm font-medium text-slate-700 mb-1">Garage Area (sq ft)</label>
+                                <input type="number" name="Garage_Area" min="0" placeholder="e.g., 548" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Garage_Qual" class="block text-sm font-medium text-slate-700 mb-1">Garage Quality</label>
+                                <select name="Garage_Qual" id="Garage_Qual"><option value="NA">No Garage</option><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Typical/Average</option><option value="Fa">Fair</option><option value="Po">Poor</option></select>
+                            </div>
+                            <div>
+                                <label for="Garage_Cond" class="block text-sm font-medium text-slate-700 mb-1">Garage Condition</label>
+                                <select name="Garage_Cond" id="Garage_Cond"><option value="NA">No Garage</option><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Typical/Average</option><option value="Fa">Fair</option><option value="Po">Poor</option></select>
+                            </div>
+                            <div>
+                                <label for="Paved_Drive" class="block text-sm font-medium text-slate-700 mb-1">Paved Driveway</label>
+                                <select name="Paved_Drive" id="Paved_Drive" required><option value="Y">Paved</option><option value="P">Partial Pavement</option><option value="N">Dirt/Gravel</option></select>
+                            </div>
+                            <div>
+                                <label for="Wood_Deck_SF" class="block text-sm font-medium text-slate-700 mb-1">Wood Deck (sq ft)</label>
+                                <input type="number" name="Wood_Deck_SF" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Open_Porch_SF" class="block text-sm font-medium text-slate-700 mb-1">Open Porch (sq ft)</label>
+                                <input type="number" name="Open_Porch_SF" min="0" placeholder="e.g., 61" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                             <div>
+                                <label for="Enclosed_Porch" class="block text-sm font-medium text-slate-700 mb-1">Enclosed Porch (sq ft)</label>
+                                <input type="number" name="Enclosed_Porch" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="ThreeSsn_Porch" class="block text-sm font-medium text-slate-700 mb-1">3-Season Porch (sq ft)</label>
+                                <input type="number" name="ThreeSsn_Porch" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Screen_Porch" class="block text-sm font-medium text-slate-700 mb-1">Screen Porch (sq ft)</label>
+                                <input type="number" name="Screen_Porch" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: Amenities & Other Features -->
+                    <div id="step-6" class="form-step">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-star mr-3 text-amber-500"></i>Amenities & Other Features</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Pool and other features -->
+                            <div>
+                                <label for="Pool_Area" class="block text-sm font-medium text-slate-700 mb-1">Pool Area (sq ft)</label>
+                                <input type="number" name="Pool_Area" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                            <div>
+                                <label for="Pool_QC" class="block text-sm font-medium text-slate-700 mb-1">Pool Quality</label>
+                                <select name="Pool_QC" id="Pool_QC"><option value="NA">No Pool</option><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Average/Typical</option><option value="Fa">Fair</option></select>
+                            </div>
+                            <div>
+                                <label for="Fence" class="block text-sm font-medium text-slate-700 mb-1">Fence Quality</label>
+                                <select name="Fence" id="Fence"><option value="NA">No Fence</option><option value="GdPrv">Good Privacy</option><option value="MnPrv">Minimum Privacy</option><option value="GdWo">Good Wood</option><option value="MnWw">Minimum Wood/Wire</option></select>
+                            </div>
+                            <div>
+                                <label for="Misc_Feature" class="block text-sm font-medium text-slate-700 mb-1">Miscellaneous Feature</label>
+                                <select name="Misc_Feature" id="Misc_Feature"><option value="NA">None</option><option value="Elev">Elevator</option><option value="Gar2">2nd Garage</option><option value="Othr">Other</option><option value="Shed">Shed</option><option value="TenC">Tennis Court</option></select>
+                            </div>
+                             <div>
+                                <label for="Misc_Val" class="block text-sm font-medium text-slate-700 mb-1">Value of Misc Feature ($)</label>
+                                <input type="number" name="Misc_Val" min="0" placeholder="e.g., 0" class="mt-1 block w-full rounded-md border border-gray-300 bg-orange-50 shadow-sm py-2 px-3 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 7: Utilities & Sale Info -->
+                    <div id="step-7" class="form-step">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3 border-orange-200"><i class="fas fa-dollar-sign mr-3 text-teal-500"></i>Utilities & Sale Info</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- All fields for step 7 -->
+                            <div>
+                                <label for="Heating_QC" class="block text-sm font-medium text-slate-700 mb-1">Heating Quality</label>
+                                <select name="Heating_QC" id="Heating_QC" required><option value="Ex">Excellent</option><option value="Gd">Good</option><option value="TA">Average/Typical</option><option value="Fa">Fair</option><option value="Po">Poor</option></select>
+                            </div>
+                            <div>
+                                <label for="Central_Air" class="block text-sm font-medium text-slate-700 mb-1">Central Air</label>
+                                <select name="Central_Air" id="Central_Air" required><option value="Y">Yes</option><option value="N">No</option></select>
+                            </div>
+                            <div>
+                                <label for="Electrical" class="block text-sm font-medium text-slate-700 mb-1">Electrical System</label>
+                                <select name="Electrical" id="Electrical"><option value="SBrkr">Standard Circuit Breakers</option><option value="FuseA">Fuse Box - 60 AMP+</option><option value="FuseF">Fuse Box - 60 AMP</option><option value="FuseP">Fuse Box - 30 AMP</option><option value="Mix">Mixed</option></select>
+                            </div>
+                            <div>
+                                <label for="Mo_Sold" class="block text-sm font-medium text-slate-700 mb-1">Month Sold</label>
+                                <select name="Mo_Sold" id="Mo_Sold" required><option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>
+                            </div>
+                            <div>
+                                <label for="Yr_Sold" class="block text-sm font-medium text-slate-700 mb-1">Year Sold</label>
+                                <select name="Yr_Sold" id="Yr_Sold" required></select>
+                            </div>
+                            <div>
+                                <label for="Sale_Type" class="block text-sm font-medium text-slate-700 mb-1">Sale Type</label>
+                                <select name="Sale_Type" id="Sale_Type" required><option value="WD">Warranty Deed - Normal</option><option value="CWD">Warranty Deed - Cash</option><option value="VWD">Warranty Deed - VA Loan</option><option value="New">Home just built and sold</option><option value="COD">Court Officer Deed</option><option value="Con">Contract</option><option value="ConLw">Contract - Low Interest</option><option value="ConLI">Contract - Low Interest+Installment</option><option value="ConLD">Contract - Low Down Payment</option><option value="Oth">Other</option></select>
+                            </div>
+                            <div>
+                                <label for="Sale_Condition" class="block text-sm font-medium text-slate-700 mb-1">Sale Condition</label>
+                                <select name="Sale_Condition" id="Sale_Condition" required><option value="Normal">Normal</option><option value="Abnorml">Abnormal</option><option value="AdjLand">Adjoining Land Purchase</option><option value="Alloca">Allocation</option><option value="Family">Family Sale</option><option value="Partial">Partial Sale</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="mt-10 pt-6 border-t border-orange-200 flex justify-between items-center">
+                    <button type="button" id="prevBtn" class="bg-orange-200 text-slate-800 font-bold py-2 px-6 rounded-lg hover:bg-orange-300 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-arrow-left mr-2"></i> Previous
+                    </button>
+                    <button type="button" id="nextBtn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition duration-300">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <button type="submit" id="submitBtn" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition duration-300 text-lg shadow-lg hover:shadow-xl transform hover:scale-105" style="display:none;">
+                        <i class="fas fa-calculator mr-2"></i> Predict Price
+                    </button>
+                </div>
+            </form>
+        </main>
+
+        <footer class="text-center mt-12">
+            <p class="text-slate-500">&copy; 2025 Ames Housing Valuator. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Tom Select JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let currentStep = 1;
+            const steps = document.querySelectorAll('.form-step');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const progressBar = document.getElementById('progress-bar');
+            const totalSteps = steps.length;
+            const animationDuration = 500;
+            let isAnimating = false; // This flag prevents animation overlaps
+
+            function updateButtons() {
+                prevBtn.disabled = isAnimating || currentStep === 1;
+                nextBtn.disabled = isAnimating;
+
+                if (currentStep === totalSteps) {
+                    nextBtn.style.display = 'none';
+                    submitBtn.style.display = 'inline-block';
+                } else {
+                    nextBtn.style.display = 'inline-block';
+                    submitBtn.style.display = 'none';
+                }
+            }
+
+            function transitionStep(stepNumber, direction) {
+                if (isAnimating) return;
+                isAnimating = true;
+                updateButtons();
+
+                const currentStepElement = document.querySelector('.form-step-active');
+                const nextStepElement = document.getElementById(`step-${stepNumber}`);
+
+                if (currentStepElement && nextStepElement) {
+                    const exitAnim = direction === 'next' ? 'slide-out-left' : 'slide-out-right';
+                    const enterAnim = direction === 'next' ? 'slide-in-right' : 'slide-in-left';
+
+                    currentStepElement.classList.add(exitAnim);
+
+                    setTimeout(() => {
+                        currentStepElement.classList.remove('form-step-active', exitAnim);
+                        nextStepElement.classList.add('form-step-active', enterAnim);
+                        
+                        progressBar.style.width = `${(stepNumber / totalSteps) * 100}%`;
+                        
+                        setTimeout(() => {
+                            nextStepElement.classList.remove(enterAnim);
+                            isAnimating = false;
+                            updateButtons();
+                        }, animationDuration);
+
+                    }, animationDuration);
+                } else {
+                    isAnimating = false;
+                    updateButtons();
+                }
+            }
+
+            nextBtn.addEventListener('click', () => {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    transitionStep(currentStep, 'next');
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentStep > 1) {
+                    currentStep--;
+                    transitionStep(currentStep, 'prev');
+                }
+            });
+
+            // --- Dropdown Population ---
+            const populateYearDropdown = (selectElement) => {
+                 if(selectElement) {
+                    const currentYear = new Date().getFullYear();
+                    for (let year = currentYear; year >= 1870; year--) {
+                        let option = new Option(year, year);
+                        selectElement.add(option);
+                    }
+                 }
+            }
+
+            const yearBuiltSelect = document.getElementById('Year_Built');
+            const yearRemodSelect = document.getElementById('Year_RemodAdd');
+            const garageYrBltSelect = document.getElementById('Garage_Yr_Blt');
+            const yrSoldSelect = document.getElementById('Yr_Sold');
+
+            populateYearDropdown(yearBuiltSelect);
+            populateYearDropdown(yearRemodSelect);
+            populateYearDropdown(garageYrBltSelect);
+            populateYearDropdown(yrSoldSelect);
+
+            // Initialize Tom Select on all select elements
+            document.querySelectorAll('select').forEach((el) => {
+                new TomSelect(el, { placeholder: 'Select an option...' });
+            });
+
+            // Set default values for TomSelect instances *after* initialization
+            if (yearBuiltSelect && yearBuiltSelect.tomselect) yearBuiltSelect.tomselect.setValue('2003');
+            if (yearRemodSelect && yearRemodSelect.tomselect) yearRemodSelect.tomselect.setValue('2003');
+            if (garageYrBltSelect && garageYrBltSelect.tomselect) garageYrBltSelect.tomselect.setValue('2003');
+            if (yrSoldSelect && yrSoldSelect.tomselect) yrSoldSelect.tomselect.setValue('2008');
+            
+            updateButtons(); // Initial button state setup
+        });
+    </script>
+</body>
+</html>
+
