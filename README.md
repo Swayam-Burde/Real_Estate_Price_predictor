@@ -11,57 +11,39 @@ An intelligent web application that predicts housing prices in Ames, Iowa, using
 - Prediction Result
 
 ## 📁 Project Structure
-
-# 📁 Project Structure
-
-## Ames-Housing-Price-Prediction/
-
-### 📂 .github/workflows/
-- `main.yaml` - CI/CD pipeline for deployment
-
-### 📂 artifacts/
-*Saved model and preprocessor files*
-- `data_transformation.pkl`
-- `model.pkl`
-
-### 📂 notebook/
-*Jupyter notebooks for analysis and modeling*
-- `1. EDA.ipynb`
-- `2. Model Training.ipynb`
-
-### 📂 src/
-*Source code for the ML application*
-
-#### 📂 src/components/
-*Core ML pipeline components*
-- `data_ingestion.py`
-- `data_transformation.py`
-- `model_trainer.py`
-- `__init__.py`
-
-#### 📂 src/pipeline/
-*Prediction pipeline logic*
-- `predict_pipeline.py`
-- `__init__.py`
-
-#### 📂 src/ (root files)
-- `exception.py` - Custom exception handling
-- `logger.py` - Logging configuration
-- `utils.py` - Utility functions
-- `__init__.py`
-
-### 📂 templates/
-*HTML templates for the web interface*
-- `Index.html`
-- `home.html`
-
-### 📄 Root Files
-- `.gitignore` - Git ignore file
-- `app.py` - Main Flask web application
-- `README.md` - Project documentation
-- `requirements.txt` - Project dependencies
-- `setup.py` - Project setup configuration
-
+```
+Ames-Housing-Price-Prediction/
+│
+├── .github/workflows/
+│   └── main.yaml                    # CI/CD pipeline for deployment
+├── artifacts/                       # Saved model and preprocessor files
+│   ├── data_transformation.pkl
+│   └── model.pkl
+├── notebook/                        # Jupyter notebooks for analysis and modeling
+│   ├── 1. EDA.ipynb
+│   └── 2. Model Training.ipynb
+├── src/                             # Source code for the ML application
+│   ├── components/                  # Core ML pipeline components
+│   │   ├── data_ingestion.py
+│   │   ├── data_transformation.py
+│   │   ├── model_trainer.py
+│   │   └── __init__.py
+│   ├── pipeline/                    # Prediction pipeline logic
+│   │   ├── predict_pipeline.py
+│   │   └── __init__.py
+│   ├── exception.py                 # Custom exception handling
+│   ├── logger.py                    # Logging configuration
+│   ├── utils.py                     # Utility functions
+│   └── __init__.py
+├── templates/                       # HTML templates for the web interface
+│   ├── Index.html
+│   └── home.html
+├── .gitignore                       # Git ignore file
+├── app.py                           # Main Flask web application
+├── README.md                        # Project documentation
+├── requirements.txt                 # Project dependencies
+└── setup.py                        # Project setup configuration
+```
 
 
 ## 📝 Key Components
@@ -120,8 +102,8 @@ python -m venv venv
 venv\Scripts\activate
 
 # On macOS/Linux:
-# python3 -m venv venv
-# source venv/bin/activate
+ python3 -m venv venv
+ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
