@@ -92,11 +92,11 @@ Experience the Ames Housing Price Predictor in two ways:
 
 ### Run Locally:
 
-# Clone the repository
+### Clone the repository
 git clone https://github.com/Swayam-Burde/Ames-Housing-Price-Prediction.git
 cd Ames-Housing-Price-Prediction
 
-## Create and activate a virtual environment
+### Create and activate a virtual environment
 ### On Windows:
 python -m venv venv
 venv\Scripts\activate
