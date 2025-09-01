@@ -96,19 +96,19 @@ Experience the Ames Housing Price Predictor in two ways:
 git clone https://github.com/Swayam-Burde/Ames-Housing-Price-Prediction.git
 cd Ames-Housing-Price-Prediction
 
-# Create and activate a virtual environment
-# On Windows:
+## Create and activate a virtual environment
+### On Windows:
 python -m venv venv
 venv\Scripts\activate
 
-# On macOS/Linux:
+### On macOS/Linux:
  python3 -m venv venv
  source venv/bin/activate
 
-# Install dependencies
+### Install dependencies
 pip install -r requirements.txt
 
-# Run the application
+### Run the application
 python app.py
 
 Then, open your browser and go to http://127.0.0.1:5000.
