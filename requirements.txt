@@ -13,4 +13,5 @@ scipy
 catboost
 xgboost
 dill
+gunicorn
 -e .
