@@ -2,7 +2,7 @@
 
 An intelligent web application that predicts housing prices in Ames, Iowa, using a machine learning model and a comprehensive set of property features.
 
-🔗 **Live Demo:** [your-live-demo-link-here]
+🔗 **Live Demo:** (https://real-estate-price-predictor-vqsg.onrender.com/)
 
 ## 🌐 Web App Preview
 
